@@ -35,6 +35,7 @@ namespace Mastermind.Api
                     .AddCookie(ConfigureCookieOptions).Services
                 .AddControllers()
                     .AddJsonOptions(ConfigureJsonOptions).Services
+                .AddCors(o => o.AddDefaultPolicy(p => p.AllowCredentials().AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:4200")))
                 .AddSwaggerGen(o => o.SwaggerDoc("v1", new OpenApiInfo { Title = "Mastermind API", Version = "v1" }))
                 .AddSingleton<IHttpContextAccessor, HttpContextAccessor>()
                 .AddSingleton<GameRepository>()
@@ -42,11 +43,11 @@ namespace Mastermind.Api
                 .AddScoped<ScoreRepository>()
                 .AddScoped<UserService>();
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env) =>
-            app.UseWhen(_ => env.IsDevelopment(), dev => dev.UseDeveloperExceptionPage().UseDatabaseErrorPage())
-                .UseWhen(_ => !env.IsDevelopment(), prod => prod.UseHsts())
+        public void Configure(IApplicationBuilder app) =>
+            app.UseCors()
+                .UseDeveloperExceptionPage()
+                .UseDatabaseErrorPage()
                 .Use(HandleUserException)
-                .UseHttpsRedirection()
                 .UseRouting()
                 .UseAuthentication()
                 .UseAuthorization()
@@ -92,8 +93,8 @@ namespace Mastermind.Api
             options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         }
 
-
-        private static void ConfigureCookieOptions(CookieAuthenticationOptions options) =>
+        private static void ConfigureCookieOptions(CookieAuthenticationOptions options)
+        {
             options.Events = new CookieAuthenticationEvents
             {
                 OnRedirectToLogin = c =>
@@ -107,6 +108,9 @@ namespace Mastermind.Api
                     return Task.CompletedTask;
                 }
             };
+            options.Cookie.HttpOnly = false;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+        }
 
         private static void ConfigureSwaggerUI(SwaggerUIOptions options)
         {
